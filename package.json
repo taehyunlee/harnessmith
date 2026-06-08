@@ -1,7 +1,7 @@
 {
   "name": "harness-forge",
   "productName": "Harness Forge",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "나만의 하네스 설계 스튜디오 — 목적을 설명하고 파일을 첨부하면 Claude Skill(SKILL.md)과 시스템 설계 문서를 시각적으로 만들어 내보내는 데스크톱 앱",
   "author": {
     "name": "ZEPlatform",
