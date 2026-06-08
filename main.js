@@ -5,7 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
 
-const { buildSkillMd, buildSystemDesign, slugify } = require('./src/harness/generator');
+const { buildSkillMd, buildSystemDesign, buildHtml, slugify } = require('./src/harness/generator');
 const store = require('./src/harness/store');
 
 const isDev = process.argv.includes('--dev') || !app.isPackaged;
@@ -31,7 +31,9 @@ function createWindow() {
   mainWindow.removeMenu();
   mainWindow.loadFile(path.join(__dirname, 'src', 'renderer', 'index.html'));
 
-  if (isDev) {
+  // DevTools는 명시적으로 --dev 로 실행할 때만 연다 (npm run dev).
+  // 그냥 npm start 에서는 열지 않아 Autofill/Failed to fetch 같은 DevTools 잡음이 안 나온다.
+  if (process.argv.includes('--dev')) {
     mainWindow.webContents.openDevTools({ mode: 'detach' });
   }
 
@@ -107,7 +109,8 @@ ipcMain.handle('project:delete', (_e, id) => store.remove(id));
 // Generate preview (no disk write)
 ipcMain.handle('project:preview', (_e, project) => ({
   skill: buildSkillMd(project),
-  design: buildSystemDesign(project)
+  design: buildSystemDesign(project),
+  html: buildHtml(project)
 }));
 
 // Attach a file via dialog -> copies into the project's attachment store
@@ -158,6 +161,12 @@ ipcMain.handle('project:export', async (_e, project) => {
     const designFile = path.join(outRoot, `${skillName}-SYSTEM_DESIGN.md`);
     fs.writeFileSync(designFile, buildSystemDesign(project), 'utf8');
     written.push(designFile);
+  }
+
+  if (outs.includes('html')) {
+    const htmlFile = path.join(outRoot, `${skillName}.html`);
+    fs.writeFileSync(htmlFile, buildHtml(project), 'utf8');
+    written.push(htmlFile);
   }
 
   shell.openPath(outRoot);

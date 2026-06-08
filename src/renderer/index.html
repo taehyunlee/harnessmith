@@ -24,13 +24,15 @@
         <div id="projectList" class="project-list"></div>
 
         <div class="palette">
-          <div class="list-header">추가하기</div>
-          <button class="btn block pal" data-add="step">➕ 단계 카드</button>
+          <div class="list-header">단계 카드 추가</div>
+          <div id="stepPalette" class="step-palette"></div>
+          <div class="list-header">그 외</div>
           <button class="btn block pal" data-add="tool">🔧 도구 / MCP</button>
           <button class="btn block pal" data-add="attach">📎 파일 첨부</button>
         </div>
 
         <div class="sidebar-footer">
+          <button id="checkUpdateBtn" class="btn small block">🔄 업데이트 확인</button>
           <div id="updateStatus" class="update-status">업데이트: 대기</div>
           <div id="appInfo" class="app-info"></div>
         </div>
@@ -62,9 +64,20 @@
           <div class="work-body">
             <!-- Canvas -->
             <div id="canvasWrap" class="canvas-wrap">
-              <svg id="wires" class="wires"></svg>
-              <div id="canvas" class="canvas"></div>
-              <div class="canvas-hint">카드를 드래그해 옮기고, 클릭하면 오른쪽에서 편집돼요</div>
+              <div class="zoom-bar">
+                <button id="zoomOut" class="zbtn">−</button>
+                <span id="zoomLabel">100%</span>
+                <button id="zoomIn" class="zbtn">＋</button>
+                <button id="zoomReset" class="zbtn">⟳</button>
+              </div>
+              <div id="sizer" class="sizer">
+                <div id="stage" class="stage">
+                  <svg id="wires" class="wires"></svg>
+                  <div id="canvas" class="canvas"></div>
+                  <div id="anchors" class="anchors"></div>
+                </div>
+              </div>
+              <div class="canvas-hint">Ctrl+휠=확대/축소 · 드래그=이동 · 빈 곳 드래그=다중 선택 · 우클릭 드래그=화면 이동 · 화살표 끝점 드래그=연결 변경 · Delete=삭제</div>
             </div>
 
             <!-- Inspector -->
@@ -90,7 +103,8 @@
                   <label>산출물</label>
                   <div class="checks">
                     <label class="chk"><input type="checkbox" id="out-skill" checked /> SKILL.md</label>
-                    <label class="chk"><input type="checkbox" id="out-design" checked /> 시스템 설계 문서</label>
+                    <label class="chk"><input type="checkbox" id="out-design" checked /> 설계 문서(MD)</label>
+                    <label class="chk"><input type="checkbox" id="out-html" checked /> HTML 보고서</label>
                   </div>
                 </div>
               </div>
@@ -106,17 +120,20 @@
         <div class="modal-head">
           <div class="tabs">
             <button class="tab active" data-tab="skill">SKILL.md</button>
-            <button class="tab" data-tab="design">시스템 설계 문서</button>
+            <button class="tab" data-tab="design">설계 문서(MD)</button>
+            <button class="tab" data-tab="html">HTML 보고서</button>
           </div>
           <button id="closePreview" class="btn small">닫기 ✕</button>
         </div>
         <pre id="previewContent" class="preview-pre"></pre>
+        <iframe id="previewFrame" class="preview-frame hidden"></iframe>
         <div class="modal-foot">
-          <span class="hint">설계 문서의 mermaid 다이어그램은 GitHub 등에서 그림으로 렌더링됩니다.</span>
+          <span class="hint">HTML 보고서는 표·색상 카드·다이어그램이 포함된, 브라우저에서 바로 보기 좋은 형식입니다.</span>
         </div>
       </div>
     </div>
 
+    <script src="../shared/stepTypes.js"></script>
     <script src="renderer.js"></script>
   </body>
 </html>
