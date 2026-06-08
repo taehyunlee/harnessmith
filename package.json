@@ -1,0 +1,63 @@
+{
+  "name": "harness-forge",
+  "productName": "Harness Forge",
+  "version": "0.1.0",
+  "description": "나만의 하네스 엔지니어링 스튜디오 — API 테스트 하네스와 AI 에이전트/코드 검증 하네스를 만들고 실행하는 데스크톱 앱",
+  "author": {
+    "name": "ZEPlatform",
+    "email": "zeplatform@eastarjet.com"
+  },
+  "license": "MIT",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "release": "electron-builder --publish always"
+  },
+  "build": {
+    "appId": "com.zeplatform.harnessforge",
+    "productName": "Harness Forge",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "taehyunlee",
+        "repo": "harnessmith"
+      }
+    ]
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "electron-updater": "^6.2.1"
+  }
+}
