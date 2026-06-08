@@ -5,7 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
 
-const { runHarness } = require('./src/harness/runner');
+const { buildSkillMd, buildSystemDesign, slugify } = require('./src/harness/generator');
 const store = require('./src/harness/store');
 
 const isDev = process.argv.includes('--dev') || !app.isPackaged;
@@ -97,19 +97,71 @@ function log(scope, msg) {
 }
 
 // ---------------------------------------------------------------------------
-// IPC: harness CRUD + run
+// IPC: project CRUD
 // ---------------------------------------------------------------------------
-ipcMain.handle('harness:list', () => store.list());
-ipcMain.handle('harness:get', (_e, id) => store.get(id));
-ipcMain.handle('harness:save', (_e, harness) => store.save(harness));
-ipcMain.handle('harness:delete', (_e, id) => store.remove(id));
+ipcMain.handle('project:list', () => store.list());
+ipcMain.handle('project:get', (_e, id) => store.get(id));
+ipcMain.handle('project:save', (_e, project) => store.save(project));
+ipcMain.handle('project:delete', (_e, id) => store.remove(id));
 
-ipcMain.handle('harness:run', async (_e, harness) => {
-  return runHarness(harness, (event) => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('harness:progress', event);
-    }
+// Generate preview (no disk write)
+ipcMain.handle('project:preview', (_e, project) => ({
+  skill: buildSkillMd(project),
+  design: buildSystemDesign(project)
+}));
+
+// Attach a file via dialog -> copies into the project's attachment store
+ipcMain.handle('project:attach', async (_e, projectId) => {
+  const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+    title: '첨부할 파일 선택',
+    properties: ['openFile', 'multiSelections']
   });
+  if (canceled) return [];
+  return filePaths.map((fp) => store.addAttachment(projectId, fp));
+});
+
+// Export: writes a skill package folder + design doc to a user-chosen directory
+ipcMain.handle('project:export', async (_e, project) => {
+  const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+    title: '내보낼 폴더 선택',
+    properties: ['openDirectory', 'createDirectory']
+  });
+  if (canceled || !filePaths[0]) return { ok: false, canceled: true };
+
+  const outRoot = filePaths[0];
+  const skillName = slugify(project.skillName || project.name);
+  const outs = Array.isArray(project.outputs) ? project.outputs : ['skill', 'design'];
+  const written = [];
+
+  if (outs.includes('skill')) {
+    const skillDir = path.join(outRoot, skillName);
+    fs.mkdirSync(skillDir, { recursive: true });
+    const skillFile = path.join(skillDir, 'SKILL.md');
+    fs.writeFileSync(skillFile, buildSkillMd(project), 'utf8');
+    written.push(skillFile);
+
+    const atts = Array.isArray(project.attachments) ? project.attachments : [];
+    if (atts.length) {
+      const resDir = path.join(skillDir, 'resources');
+      fs.mkdirSync(resDir, { recursive: true });
+      for (const a of atts) {
+        try {
+          fs.copyFileSync(store.attachmentAbsPath(a), path.join(resDir, a.name));
+        } catch {
+          /* skip missing */
+        }
+      }
+    }
+  }
+
+  if (outs.includes('design')) {
+    const designFile = path.join(outRoot, `${skillName}-SYSTEM_DESIGN.md`);
+    fs.writeFileSync(designFile, buildSystemDesign(project), 'utf8');
+    written.push(designFile);
+  }
+
+  shell.openPath(outRoot);
+  return { ok: true, outRoot, written };
 });
 
 ipcMain.handle('app:info', () => ({

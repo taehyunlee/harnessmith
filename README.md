@@ -1,11 +1,11 @@
 # Harness Forge
 
-나만의 **하네스 엔지니어링** 스튜디오. Electron 기반 Windows 데스크톱 앱으로, 두 종류의 하네스를 만들고 실행합니다.
+나만의 **하네스 설계 스튜디오**. 만들고 싶은 걸 설명하고 파일을 첨부하면, 시각적인 캔버스에서 흐름을 짜고 **Claude Skill(`SKILL.md`)** 과 **시스템 설계 문서**로 내보내는 Windows 데스크톱 앱입니다.
 
-- **API 테스트 하네스** — HTTP 요청을 보내고 상태코드 · 본문 · JSON 필드 · 응답시간을 검증
-- **코드 검증 하네스** — 셸 명령(테스트 · 빌드 · AI가 생성한 코드 실행)을 돌려 종료코드 · 표준출력 · 표준오류를 검증
-
-GitHub Releases를 통한 **자동 업데이트**가 내장되어 있습니다.
+- **AI 백엔드 불필요** — API 키 없이, 입력한 설계를 템플릿 기반으로 결정적으로 생성합니다.
+- **Lucidchart 같은 시각 캔버스** — 목적·단계·도구·첨부를 드래그 가능한 카드로 배치하고 화살표로 흐름을 연결합니다.
+- **비전공자 친화** — 큰 글씨, 한국어 라벨, 클릭하면 옆에서 바로 편집.
+- **GitHub Releases 자동 업데이트** 내장.
 
 ---
 
@@ -17,125 +17,52 @@ npm start          # 앱 실행
 npm run dev        # DevTools 포함 실행
 ```
 
-처음 실행하면 예제 하네스 2개(API 테스트, 코드 검증)가 자동으로 생성됩니다.
+처음 실행하면 예제 프로젝트("회의록 요약 스킬")가 자동으로 생성됩니다.
 
 ## Windows 설치파일 빌드
 
 ```bash
-npm run dist       # release/ 폴더에 NSIS 설치파일(.exe) 생성
+npm run dist       # release\Harness Forge-Setup-<버전>.exe 생성
 ```
-
-산출물: `release/Harness Forge-Setup-<version>.exe`
 
 ---
 
-## 하네스 구조
+## 사용 흐름
 
-하네스는 JSON으로 저장됩니다 (앱 데이터 폴더 `harnesses/`). 스텝은 위에서 아래로 순차 실행됩니다.
+1. **새 프로젝트** → 오른쪽 패널에 *목적·대상·사용 시점(트리거)·제약*을 적습니다.
+2. 왼쪽 **추가하기** 팔레트로 `➕ 단계`, `🔧 도구/MCP`, `📎 파일 첨부`를 캔버스에 올립니다.
+3. 카드를 **드래그**해 배치하고, **클릭**하면 오른쪽에서 내용을 편집합니다.
+   - 파란 화살표 = 처리 흐름(목적 → 단계 → 산출물)
+   - 초록 점선 = 도구 연결 / 노랑 점선 = 첨부 연결
+4. **👁 미리보기**로 생성될 `SKILL.md`·설계 문서를 확인합니다.
+5. **⬇ 내보내기**로 폴더를 고르면:
+   - `<스킬이름>/SKILL.md` (+ 첨부는 `resources/`에 복사)
+   - `<스킬이름>-SYSTEM_DESIGN.md` (mermaid 다이어그램 포함)
 
-```jsonc
-{
-  "name": "내 하네스",
-  "type": "api",                  // 표시용 분류 (api | code)
-  "variables": { "base": "https://api.example.com" },
-  "steps": [ /* ... */ ]
-}
-```
-
-### HTTP 스텝
-
-```jsonc
-{
-  "name": "헬스 체크",
-  "kind": "http",
-  "timeoutMs": 30000,
-  "request": {
-    "method": "GET",
-    "url": "{{base}}/health",
-    "headers": { "Authorization": "Bearer {{env.API_TOKEN}}" },
-    "body": ""
-  },
-  "assertions": [
-    { "type": "status",       "op": "eq",  "value": 200 },
-    { "type": "jsonPath",     "path": "data.status", "op": "eq", "value": "ok" },
-    { "type": "bodyContains", "value": "healthy" },
-    { "type": "responseTime", "op": "lt",  "value": 1000 }
-  ],
-  "extract": [
-    { "name": "token", "from": "jsonPath", "path": "data.token" }
-  ]
-}
-```
-
-### 셸 스텝 (코드 검증 / AI 에이전트 파이프라인)
-
-```jsonc
-{
-  "name": "유닛 테스트 실행",
-  "kind": "shell",
-  "timeoutMs": 60000,
-  "command": "npm test",
-  "cwd": "C:/path/to/project",
-  "assertions": [
-    { "type": "exitCode",          "op": "eq", "value": 0 },
-    { "type": "stdoutContains",    "value": "passing" },
-    { "type": "stderrNotContains", "value": "Error" }
-  ]
-}
-```
-
-### 변수 치환
-
-스텝 안의 문자열에서 다음을 사용할 수 있습니다.
-
-- `{{name}}` — 하네스 `variables` 또는 이전 스텝의 `extract` 결과
-- `{{env.KEY}}` — 환경변수 (`process.env.KEY`). **API 키 등 비밀값은 파일에 저장하지 말고 환경변수로 주입하세요.**
-
-### 검증 타입 (assertions)
-
-| type | 대상 | 비고 |
-|------|------|------|
-| `status` | HTTP 상태코드 | op: eq/neq/lt/gt… |
-| `responseTime` | 응답시간(ms) | |
-| `bodyContains` / `bodyNotContains` | 응답 본문 | |
-| `jsonPath` | JSON 필드 (`a.b.0.c`) | path 지정 |
-| `exitCode` | 셸 종료코드 | |
-| `stdoutContains` / `stdoutNotContains` | 표준출력 | |
-| `stderrContains` / `stderrNotContains` | 표준오류 | |
-
-연산자(`op`): `eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `contains`, `notContains`, `matches`(정규식)
-
-> **AI 에이전트 + 코드 검증 패턴**: 1번 스텝(HTTP)에서 LLM API를 호출해 코드를 받아 `extract`로 꺼내고, 2번 스텝(셸)에서 그 코드를 실행·테스트해 검증하는 식으로 파이프라인을 구성할 수 있습니다.
+> **팁**: 스킬 이름(파일명)은 영문 소문자-하이픈으로 적어주세요. 비우면 `my-skill`로 생성됩니다.
 
 ---
 
-## 자동 업데이트 설정 (GitHub Releases)
+## 생성되는 산출물
 
-1. **`package.json`의 `build.publish` 값을 본인 레포로 교체**하세요.
+### SKILL.md
+YAML 프런트매터(`name`, `description`) + 목적 / 사용 시점 / 절차 / 도구 / 제약 / 참고 리소스 섹션으로 구성된 Claude 스킬 패키지입니다.
 
-   ```jsonc
-   "publish": [
-     { "provider": "github", "owner": "내-깃헙-계정", "repo": "내-레포명" }
-   ]
-   ```
+### SYSTEM_DESIGN.md
+개요·대상·처리 흐름(mermaid `flowchart`)·단계 상세·도구 구성·산출물·제약·첨부를 정리한 사람용 설계 문서입니다. GitHub 등에서 다이어그램이 그림으로 렌더링됩니다.
 
-2. 코드를 GitHub 레포에 push 합니다.
+---
 
-3. 새 버전을 릴리스하려면 `package.json`의 `version`을 올리고 태그를 push 하세요.
+## 자동 업데이트 (GitHub Releases)
 
-   ```bash
-   npm version patch        # 0.1.0 -> 0.1.1, 커밋 + 태그 생성
-   git push --follow-tags
-   ```
+`package.json`의 `build.publish`는 `taehyunlee/harnessmith`로 설정되어 있습니다.
 
-4. `.github/workflows/release.yml`이 자동으로 Windows 설치파일을 빌드해 **GitHub Releases**에 올립니다.
+```bash
+npm version patch        # 0.1.0 -> 0.1.1, 커밋 + 태그
+git push --follow-tags   # Actions가 설치파일 빌드 → Releases 업로드
+```
 
-5. 사용자가 켜둔 앱은 시작 시 새 릴리스를 감지해 백그라운드로 내려받고, "지금 재시작" 안내 후 업데이트를 적용합니다.
-
-> 로컬에서 직접 publish 하려면: `set GH_TOKEN=<personal_access_token>` 후 `npm run release`
-
-### 코드 서명 (선택, 권장)
-서명되지 않은 설치파일은 Windows SmartScreen 경고가 뜹니다. 배포 규모가 커지면 코드 서명 인증서를 구해 electron-builder의 `win.certificateFile` 등을 설정하세요.
+사용자가 켜둔 앱은 시작 시 새 릴리스를 감지해 백그라운드로 내려받고, "지금 재시작" 안내 후 적용합니다. (private 레포는 에셋 인증이 필요해 자동 업데이트가 기본 동작하지 않습니다 — public 권장.)
 
 ---
 
@@ -143,21 +70,21 @@ npm run dist       # release/ 폴더에 NSIS 설치파일(.exe) 생성
 
 ```
 .
-├── main.js                  # Electron 메인 프로세스 + 자동 업데이트 + IPC
-├── preload.js               # contextBridge (렌더러 ↔ 메인 안전한 통신)
+├── main.js                  # 메인 프로세스 + 자동 업데이트 + IPC
+├── preload.js               # contextBridge (렌더러 ↔ 메인)
 ├── src/
 │   ├── harness/
-│   │   ├── runner.js         # 하네스 실행 엔진 (HTTP/셸, 검증, 변수, 추출)
-│   │   ├── store.js          # 하네스 JSON 파일 저장소
-│   │   └── examples.js       # 첫 실행 시 시드되는 예제 하네스
-│   └── renderer/             # UI (index.html, styles.css, renderer.js)
-├── .github/workflows/release.yml   # 태그 push 시 빌드·릴리스 자동화
-└── package.json             # electron-builder + publish 설정
+│   │   ├── generator.js      # SKILL.md / SYSTEM_DESIGN.md 생성기 (AI 불필요)
+│   │   ├── store.js          # 프로젝트 JSON 저장 + 첨부 파일 관리
+│   │   └── examples.js       # 첫 실행 시 시드되는 예제 프로젝트
+│   └── renderer/             # 시각 캔버스 UI (index.html, styles.css, renderer.js)
+├── .github/workflows/release.yml
+└── package.json
 ```
 
 ## 다음 단계 아이디어
 
-- 앱 아이콘 추가: `build/icon.ico` (256×256 이상)
-- 하네스 결과 히스토리 저장 / CSV·JSON 내보내기
-- 하네스 스케줄 실행(주기적 모니터링)
-- 드래그로 스텝 순서 변경, 검증 항목 GUI 폼
+- 앱 아이콘(`build/icon.ico`) 추가
+- 나중에 API 키를 넣으면 "AI 초안 자동작성"을 켜는 설정 슬롯
+- 캔버스 줌/팬, 단계 분기(조건 흐름)
+- 스킬 패키지를 `.skill`(zip)로 바로 내보내기

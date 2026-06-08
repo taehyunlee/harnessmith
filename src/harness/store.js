@@ -34,8 +34,8 @@ function list() {
         return {
           id: h.id,
           name: h.name,
-          type: h.type,
           stepCount: Array.isArray(h.steps) ? h.steps.length : 0,
+          attachmentCount: Array.isArray(h.attachments) ? h.attachments.length : 0,
           updatedAt: h.updatedAt || null
         };
       } catch {
@@ -78,4 +78,46 @@ function seedExamplesIfEmpty() {
   }
 }
 
-module.exports = { init, dataDir, list, get, save, remove };
+// Attachments are copied into <baseDir>/_attachments/<projectId>/
+function attachmentsDir(projectId) {
+  const d = path.join(baseDir, '_attachments', projectId);
+  fs.mkdirSync(d, { recursive: true });
+  return d;
+}
+
+function addAttachment(projectId, srcPath) {
+  const dir = attachmentsDir(projectId);
+  const base = path.basename(srcPath);
+  let dest = path.join(dir, base);
+  // avoid overwrite
+  let n = 1;
+  while (fs.existsSync(dest)) {
+    const ext = path.extname(base);
+    dest = path.join(dir, path.basename(base, ext) + `-${n++}` + ext);
+  }
+  fs.copyFileSync(srcPath, dest);
+  return {
+    id: crypto.randomUUID(),
+    name: path.basename(dest),
+    relPath: path.relative(baseDir, dest),
+    absPath: dest,
+    note: ''
+  };
+}
+
+function attachmentAbsPath(att) {
+  if (att.absPath && fs.existsSync(att.absPath)) return att.absPath;
+  return path.join(baseDir, att.relPath);
+}
+
+module.exports = {
+  init,
+  dataDir,
+  list,
+  get,
+  save,
+  remove,
+  attachmentsDir,
+  addAttachment,
+  attachmentAbsPath
+};

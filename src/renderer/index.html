@@ -8,90 +8,114 @@
   </head>
   <body>
     <div id="app">
+      <!-- Sidebar -->
       <aside class="sidebar">
         <div class="brand">
-          <div class="logo">⚙️</div>
+          <div class="logo">🧩</div>
           <div>
             <div class="brand-name">Harness Forge</div>
-            <div class="brand-sub">나만의 하네스 엔지니어링</div>
+            <div class="brand-sub">나만의 하네스 설계 스튜디오</div>
           </div>
         </div>
 
-        <button id="newHarnessBtn" class="btn primary block">+ 새 하네스</button>
+        <button id="newProjectBtn" class="btn primary block">+ 새 프로젝트</button>
 
-        <div class="list-header">하네스 목록</div>
-        <div id="harnessList" class="harness-list"></div>
+        <div class="list-header">내 프로젝트</div>
+        <div id="projectList" class="project-list"></div>
+
+        <div class="palette">
+          <div class="list-header">추가하기</div>
+          <button class="btn block pal" data-add="step">➕ 단계 카드</button>
+          <button class="btn block pal" data-add="tool">🔧 도구 / MCP</button>
+          <button class="btn block pal" data-add="attach">📎 파일 첨부</button>
+        </div>
 
         <div class="sidebar-footer">
-          <div id="updateStatus" class="update-status">업데이트 상태: 대기</div>
-          <button id="checkUpdateBtn" class="btn ghost small block">업데이트 확인</button>
+          <div id="updateStatus" class="update-status">업데이트: 대기</div>
           <div id="appInfo" class="app-info"></div>
         </div>
       </aside>
 
+      <!-- Main -->
       <main class="content">
         <div id="emptyState" class="empty-state">
-          <h2>하네스를 선택하거나 새로 만드세요</h2>
+          <div class="es-icon">🧭</div>
+          <h2>왼쪽에서 프로젝트를 고르거나 새로 시작하세요</h2>
           <p>
-            <strong>API 테스트 하네스</strong>는 HTTP 요청을 보내고 응답(상태·본문·JSON 필드·응답시간)을 검증합니다.<br />
-            <strong>코드 검증 하네스</strong>는 셸 명령(테스트·빌드·AI 생성 코드 실행)을 돌려 종료코드·출력을 검증합니다.
+            ① 만들고 싶은 걸 <b>설명</b>하고 필요하면 <b>파일을 첨부</b>합니다.<br />
+            ② 가운데 캔버스에서 <b>단계·도구 카드</b>를 끌어다 배치하며 흐름을 그립니다.<br />
+            ③ <b>SKILL.md</b> 와 <b>시스템 설계 문서</b>로 한 번에 내보냅니다.
           </p>
         </div>
 
-        <div id="editor" class="editor hidden">
-          <div class="editor-top">
-            <input id="harnessName" class="name-input" placeholder="하네스 이름" />
-            <select id="harnessType" class="type-select">
-              <option value="api">API 테스트</option>
-              <option value="code">코드 검증</option>
-            </select>
-            <div class="spacer"></div>
-            <button id="runBtn" class="btn primary">▶ 실행</button>
-            <button id="saveBtn" class="btn">저장</button>
-            <button id="deleteBtn" class="btn danger">삭제</button>
+        <div id="workspace" class="workspace hidden">
+          <!-- Toolbar -->
+          <div class="toolbar">
+            <input id="projectName" class="name-input" placeholder="프로젝트 이름" />
+            <span class="divider"></span>
+            <button id="previewBtn" class="btn">👁 미리보기</button>
+            <button id="saveBtn" class="btn">💾 저장</button>
+            <button id="exportBtn" class="btn primary">⬇ 내보내기</button>
+            <button id="deleteBtn" class="btn danger">🗑</button>
           </div>
 
-          <div class="editor-body">
-            <section class="panel">
-              <div class="panel-head">
-                <h3>변수 (JSON)</h3>
-                <span class="hint">{{변수}} 또는 {{env.KEY}} 로 스텝에서 참조</span>
-              </div>
-              <textarea id="variables" class="code" spellcheck="false" rows="3">{}</textarea>
+          <div class="work-body">
+            <!-- Canvas -->
+            <div id="canvasWrap" class="canvas-wrap">
+              <svg id="wires" class="wires"></svg>
+              <div id="canvas" class="canvas"></div>
+              <div class="canvas-hint">카드를 드래그해 옮기고, 클릭하면 오른쪽에서 편집돼요</div>
+            </div>
 
-              <div class="panel-head">
-                <h3>스텝</h3>
-                <button id="addStepBtn" class="btn small">+ 스텝 추가</button>
-              </div>
-              <div id="steps" class="steps"></div>
-            </section>
+            <!-- Inspector -->
+            <aside class="inspector">
+              <div id="inspectorBody">
+                <div class="insp-section">
+                  <h3>프로젝트 개요</h3>
+                  <label>목적 — 무엇을 만들고 싶나요?</label>
+                  <textarea id="f-purpose" class="field" rows="4" placeholder="예: 회의 메모를 넣으면 결정사항과 할 일을 정리해주는 스킬"></textarea>
 
-            <section class="panel results-panel">
-              <div class="panel-head">
-                <h3>실행 결과</h3>
-                <span id="resultSummary" class="summary-badge"></span>
+                  <label>대상 사용자 (선택)</label>
+                  <input id="f-audience" class="field" placeholder="예: 회의를 기록하는 팀원" />
+
+                  <label>사용 시점 (트리거 문장)</label>
+                  <textarea id="f-trigger" class="field" rows="2" placeholder="예: 회의록을 요약하거나 할 일을 정리해달라고 할 때 사용"></textarea>
+
+                  <label>스킬 이름 (영문, 파일명)</label>
+                  <input id="f-skillname" class="field mono" placeholder="meeting-notes-summarizer" />
+
+                  <label>제약 / 주의 (한 줄에 하나)</label>
+                  <textarea id="f-constraints" class="field" rows="3" placeholder="추측으로 담당자를 만들지 않는다"></textarea>
+
+                  <label>산출물</label>
+                  <div class="checks">
+                    <label class="chk"><input type="checkbox" id="out-skill" checked /> SKILL.md</label>
+                    <label class="chk"><input type="checkbox" id="out-design" checked /> 시스템 설계 문서</label>
+                  </div>
+                </div>
               </div>
-              <div id="results" class="results"></div>
-            </section>
+            </aside>
           </div>
         </div>
       </main>
     </div>
 
-    <template id="stepTemplate">
-      <div class="step" data-step>
-        <div class="step-head">
-          <span class="drag">⋮⋮</span>
-          <input class="step-name" placeholder="스텝 이름" data-field="name" />
-          <select class="step-kind" data-field="kind">
-            <option value="http">HTTP 요청</option>
-            <option value="shell">셸 명령</option>
-          </select>
-          <button class="btn tiny danger" data-action="removeStep">✕</button>
+    <!-- Preview modal -->
+    <div id="previewModal" class="modal hidden">
+      <div class="modal-card">
+        <div class="modal-head">
+          <div class="tabs">
+            <button class="tab active" data-tab="skill">SKILL.md</button>
+            <button class="tab" data-tab="design">시스템 설계 문서</button>
+          </div>
+          <button id="closePreview" class="btn small">닫기 ✕</button>
         </div>
-        <div class="step-body" data-body></div>
+        <pre id="previewContent" class="preview-pre"></pre>
+        <div class="modal-foot">
+          <span class="hint">설계 문서의 mermaid 다이어그램은 GitHub 등에서 그림으로 렌더링됩니다.</span>
+        </div>
       </div>
-    </template>
+    </div>
 
     <script src="renderer.js"></script>
   </body>

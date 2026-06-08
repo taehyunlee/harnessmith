@@ -3,24 +3,22 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
-  // Harness store
-  list: () => ipcRenderer.invoke('harness:list'),
-  get: (id) => ipcRenderer.invoke('harness:get', id),
-  save: (harness) => ipcRenderer.invoke('harness:save', harness),
-  remove: (id) => ipcRenderer.invoke('harness:delete', id),
-  run: (harness) => ipcRenderer.invoke('harness:run', harness),
+  // Project store
+  list: () => ipcRenderer.invoke('project:list'),
+  get: (id) => ipcRenderer.invoke('project:get', id),
+  save: (project) => ipcRenderer.invoke('project:save', project),
+  remove: (id) => ipcRenderer.invoke('project:delete', id),
+
+  // Generation + files
+  preview: (project) => ipcRenderer.invoke('project:preview', project),
+  attach: (projectId) => ipcRenderer.invoke('project:attach', projectId),
+  exportProject: (project) => ipcRenderer.invoke('project:export', project),
 
   // App / updater
   appInfo: () => ipcRenderer.invoke('app:info'),
   openDataDir: () => ipcRenderer.invoke('app:openDataDir'),
   checkUpdate: () => ipcRenderer.invoke('app:checkUpdate'),
 
-  // Streaming events
-  onProgress: (cb) => {
-    const handler = (_e, payload) => cb(payload);
-    ipcRenderer.on('harness:progress', handler);
-    return () => ipcRenderer.removeListener('harness:progress', handler);
-  },
   onUpdateStatus: (cb) => {
     const handler = (_e, payload) => cb(payload);
     ipcRenderer.on('update-status', handler);
